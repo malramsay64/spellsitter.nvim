@@ -90,6 +90,15 @@ end
 
 local marks = {}
 
+---Provide an internal interface for setting extmarks within neovim
+---
+--- This helps with the setting of the extmarks within neovim, handling the
+--- error cases and also keeping track of the marks for use within the plugin.
+---
+---@param bufnr number: The id of the buffer as defined by neovim. Use 0 for the current buffer.
+---@param lnum number: The line number to add the extmark, this is a 0 indexed value.
+---@param col number: The column to add the extmark. This is a 0 indexed value
+---@param len number: The length of the word that is spelled incorrectly.
 local function add_extmark(bufnr, lnum, col, len)
   -- TODO: This errors because of an out of bounds column when inserting
   -- newlines. Wrapping in pcall hides the issue.
@@ -104,6 +113,10 @@ local function add_extmark(bufnr, lnum, col, len)
   if not ok then
     print(('ERROR: Failed to add extmark, lnum=%d pos=%d'):format(lnum, col))
   end
+
+  -- We want to store the marks we add in a local array storage. Lua is 1
+  -- indexed, so we have to convert the 0 indexed values from neovim to be 1
+  -- indexed.
   local lnum1 = lnum+1
   marks[lnum1] = marks[lnum1] or {}
   marks[lnum1][#marks[lnum1]+1] = {col, col+len}
@@ -112,6 +125,7 @@ end
 local hl_queries = {}
 
 local function on_line(_, winid, bufnr, lnum)
+  -- Convert the 0 based line numbering into 1 based indexing for lua tables.
   marks[lnum+1] = nil
 
   local parser = get_parser(bufnr)
